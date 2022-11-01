@@ -1,53 +1,84 @@
-Shader "Custom/SimpleSobel"
+Shader "Custom/SimplePostSobel"
 {
-    Properties
-    {
-        _Color ("Color", Color) = (1,1,1,1)
-        _MainTex ("Albedo (RGB)", 2D) = "white" {}
-        _Glossiness ("Smoothness", Range(0,1)) = 0.5
-        _Metallic ("Metallic", Range(0,1)) = 0.0
-    }
-    SubShader
-    {
-        Tags { "RenderType"="Opaque" }
-        LOD 200
+    Properties 
+	{
+		_MainTex ("Base (RGB)", 2D) = "white" {}
+        _Threshold("_Threshold",Range(0,1)) = 0.1
+        _EdgeColor("_EdgeColor",Color) = (1,1,1,1)
+	}
+	
+	SubShader 
+	{
+		Tags 
+		{ 
+			"RenderType"="Opaque" 
+		}
+		LOD 200
+		
+		
+		Pass 
+		{
+			CGINCLUDE
+			#include "UnityCG.cginc"
+		
+			sampler2D _MainTex;
+            float4 _MainTex_TexelSize;
+            float _Threshold;
+            float4 _EdgeColor;
+		
+			float sobel (sampler2D tex, float2 uv, float4 size) 
+			{
+				float2 delta = float2(size.x, size.y);
+			
+				float4 hr = float4(0, 0, 0, 0);
+				float4 vt = float4(0, 0, 0, 0);
+			
+				hr += tex2D(tex, (uv + float2(-1.0, -1.0) * delta)) *  1.0;
+				hr += tex2D(tex, (uv + float2( 0.0, -1.0) * delta)) *  0.0;
+				hr += tex2D(tex, (uv + float2( 1.0, -1.0) * delta)) * -1.0;
+				hr += tex2D(tex, (uv + float2(-1.0,  0.0) * delta)) *  2.0;
+				hr += tex2D(tex, (uv + float2( 0.0,  0.0) * delta)) *  0.0;
+				hr += tex2D(tex, (uv + float2( 1.0,  0.0) * delta)) * -2.0;
+				hr += tex2D(tex, (uv + float2(-1.0,  1.0) * delta)) *  1.0;
+				hr += tex2D(tex, (uv + float2( 0.0,  1.0) * delta)) *  0.0;
+				hr += tex2D(tex, (uv + float2( 1.0,  1.0) * delta)) * -1.0;
+			
+				vt += tex2D(tex, (uv + float2(-1.0, -1.0) * delta)) *  1.0;
+				vt += tex2D(tex, (uv + float2( 0.0, -1.0) * delta)) *  2.0;
+				vt += tex2D(tex, (uv + float2( 1.0, -1.0) * delta)) *  1.0;
+				vt += tex2D(tex, (uv + float2(-1.0,  0.0) * delta)) *  0.0;
+				vt += tex2D(tex, (uv + float2( 0.0,  0.0) * delta)) *  0.0;
+				vt += tex2D(tex, (uv + float2( 1.0,  0.0) * delta)) *  0.0;
+				vt += tex2D(tex, (uv + float2(-1.0,  1.0) * delta)) * -1.0;
+				vt += tex2D(tex, (uv + float2( 0.0,  1.0) * delta)) * -2.0;
+				vt += tex2D(tex, (uv + float2( 1.0,  1.0) * delta)) * -1.0;
+			
+				return sqrt(hr * hr + vt * vt);
+			}
+		
+			float4 frag (v2f_img IN) : COLOR 
+			{
+				float s = sobel(_MainTex, IN.uv, _MainTex_TexelSize);
 
-        CGPROGRAM
-        // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf Standard fullforwardshadows
+				//return s;
 
-        // Use shader model 3.0 target, to get nicer looking lighting
-        #pragma target 3.0
+				float l = step(_Threshold, s);
+				
+				float4 ori = tex2D(_MainTex, IN.uv);
+				float4 col = lerp(ori, _EdgeColor, l);
 
-        sampler2D _MainTex;
-
-        struct Input
-        {
-            float2 uv_MainTex;
-        };
-
-        half _Glossiness;
-        half _Metallic;
-        fixed4 _Color;
-
-        // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
-        // See https://docs.unity3d.com/Manual/GPUInstancing.html for more information about instancing.
-        // #pragma instancing_options assumeuniformscaling
-        UNITY_INSTANCING_BUFFER_START(Props)
-            // put more per-instance properties here
-        UNITY_INSTANCING_BUFFER_END(Props)
-
-        void surf (Input IN, inout SurfaceOutputStandard o)
-        {
-            // Albedo comes from a texture tinted by color
-            fixed4 c = tex2D (_MainTex, IN.uv_MainTex) * _Color;
-            o.Albedo = c.rgb;
-            // Metallic and smoothness come from slider variables
-            o.Metallic = _Metallic;
-            o.Smoothness = _Glossiness;
-            o.Alpha = c.a;
-        }
-        ENDCG
-    }
-    FallBack "Diffuse"
+				return col;
+			}
+		
+			ENDCG
+		}
+		
+		Pass 
+		{
+			CGPROGRAM
+			#pragma vertex vert_img
+			#pragma fragment frag
+			ENDCG
+		}
+	} 
 }

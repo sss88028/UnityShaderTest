@@ -2922,7 +2922,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3179cfd003158fa4fbd20452b9d96eea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _effectMaterial: {fileID: 2100000, guid: 9811604b0e2384746919d735e76e9fc2, type: 2}
+  _effectMaterial: {fileID: 2100000, guid: 66e1fb485b18c764aba6e01c2e67aa11, type: 2}
 --- !u!20 &582546731
 Camera:
   m_ObjectHideFlags: 0
